@@ -1,0 +1,124 @@
+// Sélection des éléments du DOM
+const modal = document.getElementById("myModal");
+const closeBtn = document.querySelector(".close-btn");
+const startDateLabel = document.querySelector('label[for="start-date"]');
+const endDateLabel = document.querySelector('label[for="end-date"]');
+const tableHeaders = document.querySelectorAll('.editable-table thead th');
+const weekDisplay = document.getElementById('currentWeek');
+
+// Fonction pour ouvrir le modal et mettre à jour les champs
+function openModal(startTime, endTime, selectedDate) {
+    modal.style.display = "block"; // Afficher le modal
+
+    // Convertir la date en format lisible
+    const dateObj = new Date(selectedDate);
+    const formattedDate = dateObj.toLocaleDateString('fr-FR'); // Format de date en français
+
+    // Mettre à jour les labels de la modale
+    startDateLabel.innerHTML = `Heure Début: ${startTime}`;
+    endDateLabel.innerHTML = `Heure fin: ${endTime}`;
+
+    // Ajouter la date formatée
+    startDateLabel.innerHTML += ` ${formattedDate}`;
+    endDateLabel.innerHTML += ` ${formattedDate}`;
+}
+
+// Fonction pour fermer le modal
+closeBtn.addEventListener("click", () => {
+    modal.style.display = "none";
+});
+
+// Écouteur d'événement pour les clics sur les cellules du tableau
+document.addEventListener("click", (event) => {
+    if (event.target.classList.contains("editable-cell")) {
+        const row = event.target.closest("tr"); // Trouver la ligne de la cellule cliquée
+        const timeRange = row.querySelector("td").innerText; // Obtenir la plage horaire (ex: "7-8")
+        const [startTime, endTime] = timeRange.split("-"); // Séparer l'heure de début et de fin
+
+        // Récupérer la date correspondant à la colonne
+        const columnIndex = event.target.cellIndex; // Index de la colonne cliquée
+        const selectedDate = tableHeaders[columnIndex].getAttribute('data-date'); // Date de l'en-tête
+
+        // Ouvrir le modal avec les valeurs correspondantes
+        openModal(`${startTime}:00`, `${endTime}:00`, selectedDate);
+    }
+});
+
+// Faire défiler la table jusqu'à la ligne "8-9" au chargement de la page
+window.addEventListener('load', () => {
+    const targetRow = document.querySelector('.editable-table tbody tr:nth-child(9)');
+    if (targetRow) {
+        targetRow.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+});
+
+// Initialisation de la date de référence
+let currentDate = new Date();
+
+// Fonction pour obtenir les dates de début et de fin de la semaine
+function getWeekRange(date) {
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - date.getDay() + 1); // Début lundi
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Fin dimanche
+    return {
+        start: startOfWeek,
+        end: endOfWeek
+    };
+}
+
+// Fonction pour formater une date en chaîne lisible
+function formatDate(date) {
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+// Fonction pour mettre à jour l'affichage des dates dans le tableau
+function updateWeekDates() {
+    const weekRange = getWeekRange(currentDate);
+
+    // Tableau des jours de la semaine (lundi à dimanche)
+    const daysOfWeek = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+    // Mettre à jour les en-têtes du tableau avec les dates
+    tableHeaders.forEach((header, index) => {
+        if (index > 0) { // Ignorer la première colonne (Heure)
+            const dayDate = new Date(weekRange.start);
+            dayDate.setDate(weekRange.start.getDate() + index - 1); // Définir la date pour chaque jour
+
+            // Mettre à jour l'en-tête avec le nom du jour et la date
+            header.innerHTML = `${daysOfWeek[index - 1]}<br>${formatDate(dayDate)}`;
+            header.setAttribute('data-date', dayDate.toISOString().split('T')[0]); // Ajouter la date en attribut
+        }
+    });
+
+    // Affichage de la plage de la semaine
+    if (weekDisplay) {
+        weekDisplay.textContent = `Du ${formatDate(weekRange.start)} au ${formatDate(weekRange.end)}`;
+    }
+}
+
+// Événements pour naviguer entre les semaines
+document.getElementById('prevWeekButton').addEventListener('click', () => {
+    currentDate.setDate(currentDate.getDate() - 7); // Aller à la semaine précédente
+    updateWeekDates();
+});
+
+document.getElementById('nextWeekButton').addEventListener('click', () => {
+    currentDate.setDate(currentDate.getDate() + 7); // Aller à la semaine suivante
+    updateWeekDates();
+});
+
+document.getElementById('todayButton').addEventListener('click', () => {
+    currentDate = new Date(); // Réinitialiser à la date actuelle
+    updateWeekDates();
+});
+
+// Initialiser l'affichage au chargement de la page
+updateWeekDates();
+
+// Fermer la modale en cliquant à l'extérieur
+window.onclick = function(event) {
+    if (event.target === modal) {
+        modal.style.display = "none";  // Fermer la modale en cliquant à l'extérieur
+    }
+};
